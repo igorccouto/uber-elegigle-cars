@@ -24,7 +24,7 @@ def select_cars_by_category(car_data_dict, required_categories=None, excluded_ca
 
 # --- Command-line argument parsing ---
 def parse_args():
-    parser = argparse.ArgumentParser(description="Scrape Uber eligible vehicles for a given city. Please visit \"Uber Elegible Cars\" site for your location to see the categories available in your city - https://www.uber.com/global/en/eligible-vehicles")
+    parser = argparse.ArgumentParser(description="Uber eligible vehicles for a given city. Please visit \"Uber Elegible Cars\" site for your location to see the categories available in your city - https://www.uber.com/global/en/eligible-vehicles")
     parser.add_argument('--city', type=str, default='porto', help='Uber city (default: porto)')
     parser.add_argument('--required-categories', type=str, default='', help='Comma-separated categories that must be present (e.g. Comfort,Green)')
     parser.add_argument('--excluded-categories', type=str, default='', help='Comma-separated categories that must NOT be present (e.g. Black,UberXL)')
