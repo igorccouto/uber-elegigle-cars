@@ -71,12 +71,9 @@ def get_car_data(html_content):
     return car_data
 
 def filter_brands(car_data, brands_filter):
-    brands_to_keep = [
-        "Audi", "BMW", "BYD", "Chevrolet", "Citroën", "Dacia", "Fiat", "Ford", "Honda", "Hyundai", "Jeep", "Kia", "MG", "Mercedes-Benz", "Mitsubishi", "Nio", "Nissan", "Opel", "Peugeot", "Renault", "Seat", "Skoda", "Tesla", "Toyota", "Volkswagen"
-    ]
-    if brands_filter:
-        brands_to_keep = brands_filter
-    return {brand: cars for brand, cars in car_data.items() if brand in brands_to_keep}
+    if not brands_filter:
+        return car_data  # No filtering, include all brands
+    return {brand: cars for brand, cars in car_data.items() if brand in brands_filter}
 
 def print_cars(filtered_cars):
     for brand, cars in filtered_cars.items():
