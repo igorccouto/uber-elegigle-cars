@@ -1,5 +1,8 @@
 # Uber Eligible Cars Scraper
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) 
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/) ![GitHub last commit](https://img.shields.io/github/last-commit/igorccouto/uber-elegigle-cars)
+
 This Python script scrapes Uber's eligible vehicle data for a specified city and allows for advanced filtering based on car brands and Uber service categories. It outputs the results both to the console and to a JSON file.
 
 ## Features
