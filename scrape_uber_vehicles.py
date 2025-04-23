@@ -38,38 +38,18 @@ def create_session():
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Referer": "https://www.google.com/",
     }
-
     session = requests.Session()
     retries = Retry(total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
     session.mount('https://', HTTPAdapter(max_retries=retries))
     session.headers.update(headers)
     return session
 
-args = parse_args()
-city = args.city.strip().lower()
-
-required_categories = [c.strip() for c in args.required_categories.split(',') if c.strip()] if args.required_categories else None
-excluded_categories = [c.strip() for c in args.excluded_categories.split(',') if c.strip()] if args.excluded_categories else None
-brands_filter = [b.strip() for b in args.brands.split(',') if b.strip()] if args.brands else None
-
-url = f"https://www.uber.com/global/pt-pt/eligible-vehicles/?city={city}"
-
-session = create_session()
-
-try:
-    response = session.get(url, timeout=15)
-    response.raise_for_status()
-    html_content = response.text
-    # --- Extract car info from the HTML in memory ---
+def get_car_data(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
-    car_data = defaultdict(list)  # {brand: [ { 'model': ..., 'year': ..., 'categories': [...] }, ... ]}
-
-    # Find all accordion sections (brands)
+    car_data = defaultdict(list)
     for brand_div in soup.find_all('div', {'data-testid': re.compile(r'^accordion-header$')}):
         brand_name = brand_div.get_text(strip=True)
-        # Remove 'Down Small' if present (from SVG title)
         brand_name = brand_name.replace('Down Small', '').strip()
-        # Find the next sibling with car list
         content_div = brand_div.find_next('div', {'data-testid': re.compile(r'^accordion-content-')})
         if not content_div:
             continue
@@ -78,7 +58,6 @@ try:
             continue
         for li in ul.find_all('li'):
             text = li.get_text(strip=True)
-            # Example: 'A4 - 2018 (Comfort, UberX, Store Pickup, ...)' or 'A3 - 2018 (UberX, ...)' 
             match = re.match(r"([\w\s\-\.]+)\s*-\s*(\d{4})\s*\(([^)]+)\)", text)
             if match:
                 model = match.group(1).strip()
@@ -89,35 +68,56 @@ try:
                     'year': year,
                     'categories': categories
                 })
+    return car_data
 
-    # Filter to keep only specified brands (default list)
+def filter_brands(car_data, brands_filter):
     brands_to_keep = [
         "Audi", "BMW", "BYD", "Chevrolet", "Citroën", "Dacia", "Fiat", "Ford", "Honda", "Hyundai", "Jeep", "Kia", "MG", "Mercedes-Benz", "Mitsubishi", "Nio", "Nissan", "Opel", "Peugeot", "Renault", "Seat", "Skoda", "Tesla", "Toyota", "Volkswagen"
     ]
-    # If --brands is provided, override brands_to_keep
     if brands_filter:
         brands_to_keep = brands_filter
-    filtered_car_data = {brand: cars for brand, cars in car_data.items() if brand in brands_to_keep}
+    return {brand: cars for brand, cars in car_data.items() if brand in brands_to_keep}
 
-    filtered_cars = select_cars_by_category(filtered_car_data, required_categories=required_categories, excluded_categories=excluded_categories)
-
-    # Print in a format of table
+def print_cars(filtered_cars):
     for brand, cars in filtered_cars.items():
         print(f"{brand}: {len(cars)} cars")
         for car in cars:
             print(f" - {car['model']} - {car['year']}")
 
-    # Build output filename based on filters
+def build_output_filename(city, brands_filter, required_categories, excluded_categories):
     def filter_part(label, items):
         if not items:
             return ''
         return f"_{label}-" + "-".join([c.replace(' ', '_') for c in items])
     filter_str = f"{filter_part('brands', brands_filter)}{filter_part('required', required_categories)}{filter_part('excluded', excluded_categories)}"
-    json_filename = f'uber_eligible_vehicles_{city}{filter_str}.json'
-    with open(json_filename, 'w', encoding='utf-8') as json_file:
-        json.dump(filtered_cars, json_file, ensure_ascii=False, indent=2)
-    print(f"\nFiltered car data saved to '{json_filename}' for city '{city}'")
+    return f'uber_eligible_vehicles_{city}{filter_str}.json'
 
-except requests.RequestException as e:
-    print(f"Failed to fetch the page: {e}")
+def save_to_json(data, filename):
+    with open(filename, 'w', encoding='utf-8') as json_file:
+        json.dump(data, json_file, ensure_ascii=False, indent=2)
+
+def main():
+    args = parse_args()
+    city = args.city.strip().lower()
+    required_categories = [c.strip() for c in args.required_categories.split(',') if c.strip()] if args.required_categories else None
+    excluded_categories = [c.strip() for c in args.excluded_categories.split(',') if c.strip()] if args.excluded_categories else None
+    brands_filter = [b.strip() for b in args.brands.split(',') if b.strip()] if args.brands else None
+    url = f"https://www.uber.com/global/pt-pt/eligible-vehicles/?city={city}"
+    session = create_session()
+    try:
+        response = session.get(url, timeout=15)
+        response.raise_for_status()
+        html_content = response.text
+        car_data = get_car_data(html_content)
+        filtered_car_data = filter_brands(car_data, brands_filter)
+        filtered_cars = select_cars_by_category(filtered_car_data, required_categories=required_categories, excluded_categories=excluded_categories)
+        print_cars(filtered_cars)
+        json_filename = build_output_filename(city, brands_filter, required_categories, excluded_categories)
+        save_to_json(filtered_cars, json_filename)
+        print(f"\nFiltered car data saved to '{json_filename}' for city '{city}'")
+    except requests.RequestException as e:
+        print(f"Failed to fetch the page: {e}")
+
+if __name__ == "__main__":
+    main()
 
