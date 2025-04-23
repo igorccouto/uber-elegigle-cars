@@ -60,6 +60,9 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+
+# Uber eligible cars output
+*.json
 build/
 develop-eggs/
 dist/
