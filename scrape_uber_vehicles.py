@@ -24,7 +24,7 @@ def select_cars_by_category(car_data_dict, required_categories=None, excluded_ca
 
 # --- Command-line argument parsing ---
 def parse_args():
-    parser = argparse.ArgumentParser(description="Scrape Uber eligible vehicles for a given city.")
+    parser = argparse.ArgumentParser(description="Scrape Uber eligible vehicles for a given city. Please visit \"Uber Elegible Cars\" site for your location to see the categories available in your city - https://www.uber.com/global/en/eligible-vehicles")
     parser.add_argument('--city', type=str, default='porto', help='Uber city (default: porto)')
     parser.add_argument('--required-categories', type=str, default='', help='Comma-separated categories that must be present (e.g. Comfort,Green)')
     parser.add_argument('--excluded-categories', type=str, default='', help='Comma-separated categories that must NOT be present (e.g. Black,UberXL)')
@@ -111,6 +111,8 @@ def main():
         car_data = get_car_data(html_content)
         filtered_car_data = filter_brands(car_data, brands_filter)
         filtered_cars = select_cars_by_category(filtered_car_data, required_categories=required_categories, excluded_categories=excluded_categories)
+        total_cars = sum(len(cars) for cars in filtered_cars.values())
+        print(f"\nTotal cars found: {total_cars}\n")
         print_cars(filtered_cars)
         json_filename = build_output_filename(city, brands_filter, required_categories, excluded_categories)
         save_to_json(filtered_cars, json_filename)
